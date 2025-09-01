@@ -1,89 +1,96 @@
-const http = require("http");
-const url = require("url");
+const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const chalk = require("chalk");
 const _ = require("lodash");
+const path = require("path");
 
 const { loadJSON, saveJSON } = require("./utils/fileHelpers");
-const { sendJSON, sendHTML } = require("./utils/response");
-const { parseJSONBody } = require("./utils/bodyParser");
 const { AppError, NotFoundError, ValidationError } = require("./utils/errors");
 
-// Load data (empty at first)
 let students = loadJSON("students.json");
 let classes = loadJSON("classes.json");
 
-// Creating server
-const server = http.createServer(async (req, res) => {
-  const { pathname } = url.parse(req.url, true);
-  const method = req.method.toUpperCase();
+const app = express();
 
-  try {
-    if (pathname === "/" && method === "GET") {
-      return sendHTML(
-        res,
-        200,
-        `<h1>Welcome to the Students & Classes API</h1>`
-      );
-    }
+app.use(express.json());
+// get routes
+app.get("/", (req, res) => {
+  res.status(200).send("<h1>Welcome to the Students & Classes API</h1>");
+});
 
-    // Students
-    if (pathname === "/students" && method === "GET") {
-      return sendJSON(res, 200, students);
-    }
-    if (pathname === "/students/random" && method === "GET") {
-      if (students.length === 0)
-        throw new NotFoundError("No students available");
-      return sendJSON(res, 200, _.sample(students));
-    }
-    if (pathname === "/students" && method === "POST") {
-      const body = await parseJSONBody(req);
-      if (!body.name || typeof body.name !== "string") {
-        throw new ValidationError("Student name is required");
-      }
-      const newStudent = { id: uuidv4(), name: body.name.trim() };
-      students.push(newStudent);
-      saveJSON("students.json", students);
-      return sendJSON(res, 201, {
-        message: "Student created",
-        student: newStudent,
-      });
-    }
+app.get("/students", (req, res) => {
+  res.status(200).json(students);
+});
 
-    // Classes
-    if (pathname === "/classes" && method === "GET") {
-      return sendJSON(res, 200, classes);
-    }
-    if (pathname === "/classes/random" && method === "GET") {
-      if (classes.length === 0) throw new NotFoundError("No classes available");
-      return sendJSON(res, 200, _.sample(classes));
-    }
-    if (pathname === "/classes" && method === "POST") {
-      const body = await parseJSONBody(req);
-      if (!body.name || typeof body.name !== "string") {
-        throw new ValidationError("Class name is required");
-      }
-      const newClass = { id: uuidv4(), name: body.name.trim() };
-      classes.push(newClass);
-      saveJSON("classes.json", classes);
-      return sendJSON(res, 201, { message: "Class created", class: newClass });
-    }
+app.get("/students/random", (req, res) => {
+  if (students.length === 0) throw new NotFoundError("No students available");
+  res.status(200).json(_.sample(students));
+});
 
-    throw new NotFoundError();
-  } catch (err) {
-    if (err instanceof AppError) {
-      return sendJSON(res, err.statusCode, { error: err.message });
-    }
-    console.error(chalk.red("Unexpected Error:"), err);
-    return sendJSON(res, 500, { error: "Internal Server Error" });
+app.get("/classes", (req, res) => {
+  res.status(200).json(classes);
+});
+
+app.get("/classes/random", (req, res) => {
+  if (classes.length === 0) throw new NotFoundError("No classes available");
+  res.status(200).json(_.sample(classes));
+});
+// post routes
+app.post("/students", (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== "string") {
+    throw new ValidationError("Student name is required");
   }
+  const newStudent = { id: uuidv4(), name: name.trim() };
+  students.push(newStudent);
+  saveJSON("students.json", students);
+  res.status(201).json({ message: "Student created", student: newStudent });
+});
+app.post("/classes", (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== "string") {
+    throw new ValidationError("Class name is required");
+  }
+  const newClass = { id: uuidv4(), name: name.trim() };
+  classes.push(newClass);
+  saveJSON("classes.json", classes);
+  res.status(201).json({ message: "Class created", class: newClass });
+});
+// delete routes
+app.delete("/students/:id", (req, res) => {
+  const { id } = req.params;
+  const index = students.findIndex((s) => s.id === id);
+  if (index === -1) throw new NotFoundError("Student not found");
+  const deletedStudent = students.splice(index, 1)[0];
+  saveJSON("students.json", students);
+  res.status(200).json({ message: "Student deleted", student: deletedStudent });
+});
+
+app.delete("/classes/:id", (req, res) => {
+  const { id } = req.params;
+  const index = classes.findIndex((c) => c.id === id);
+  if (index === -1) throw new NotFoundError("Class not found");
+  const deletedClass = classes.splice(index, 1)[0];
+  saveJSON("classes.json", classes);
+  res.status(200).json({ message: "Class deleted", class: deletedClass });
+});
+app.use((err, req, res, next) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({ error: err.message });
+  }
+  console.error(chalk.red("Unexpected Error:"), err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
+
+app.use((req, res) => {
+  throw new NotFoundError();
 });
 
 // Start server
 const PORT = 3000;
 const HOST = "0.0.0.0";
 
-server.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, () => {
   console.log(chalk.green(`🚀 Server running at http://localhost:${PORT}`));
   console.log(
     chalk.green(`🌐 Accessible on network at http://10.10.20.70:${PORT}`)
