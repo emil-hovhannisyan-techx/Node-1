@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLoaderData, Form } from "react-router-dom";
+import { useLoaderData } from "react-router-dom";
 import axios from "axios";
 
 interface Class {
@@ -16,18 +16,18 @@ function ClassesPage() {
     if (!newName) return;
     await axios.post("/classes", { name: newName });
     setNewName("");
-    window.location.reload(); // Temporary; consider React Query for auto-refresh
+    window.location.reload();
   };
 
   const deleteClass = async (id: string) => {
     await axios.delete(`/classes/${id}`);
-    window.location.reload(); // Temporary; consider React Query for auto-refresh
+    window.location.reload();
   };
 
   return (
     <div>
       <h2>Classes</h2>
-      <Form onSubmit={addClass} className="input-group">
+      <form onSubmit={addClass} className="input-group">
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -35,7 +35,7 @@ function ClassesPage() {
           required
         />
         <button type="submit">Add Class</button>
-      </Form>
+      </form>
       <div className="card-container">
         {classes.map((c) => (
           <div key={c.id} className="card">

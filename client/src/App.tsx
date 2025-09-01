@@ -1,6 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Root from "./Root";
-import StudentsPage from "./StudentPage";
+import StudentsPage from "./StudentsPage";
 import ClassesPage from "./ClassesPage";
 import { loader as studentsLoader } from "./studentloader";
 import { loader as classesLoader } from "./classloader";

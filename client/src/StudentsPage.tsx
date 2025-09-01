@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLoaderData, Form } from "react-router-dom";
+import { useLoaderData } from "react-router-dom";
 import axios from "axios";
 
 interface Student {
@@ -27,7 +27,7 @@ function StudentsPage() {
   return (
     <div>
       <h2>Students</h2>
-      <Form onSubmit={addStudent} className="input-group">
+      <form onSubmit={addStudent} className="input-group">
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -35,7 +35,7 @@ function StudentsPage() {
           required
         />
         <button type="submit">Add Student</button>
-      </Form>
+      </form>
       <div className="card-container">
         {students.map((s) => (
           <div key={s.id} className="card">
